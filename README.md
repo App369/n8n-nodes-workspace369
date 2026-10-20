@@ -15,7 +15,7 @@ In short: in n8n, go to **Settings → Community nodes → Install**, enter `n8n
 
 ## Credentials
 
-1. In Workspace369, an admin turns on AI connections, then opens **Settings → AI connections → Personal access tokens** and creates a token.
+1. In Workspace369, an admin turns on AI connections, then opens **Settings → AI connections → Personal access tokens** and creates a token. For instant triggers, also give the token the webhooks scope (`webhooks:manage`), and use an account that can manage webhooks; request (lead) events also need access to Requests.
 2. In n8n, create a **Workspace369 API** credential and paste the token into **API Key (Personal Access Token)**.
 3. Leave **Base URL** as `https://mcp.workspace369.com` unless support told you otherwise.
 

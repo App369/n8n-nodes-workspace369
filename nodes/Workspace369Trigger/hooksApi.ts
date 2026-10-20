@@ -2,11 +2,10 @@
  * Every call to the Workspace369 REST hooks API lives in this file, so the
  * request and response shapes can be adjusted in one place.
  *
- * Assumed shapes (see README, "Instant triggers"):
+ * Shapes (Workspace369-API #772):
  *   POST   /v1/hooks            { target_url, events } -> { id, events, target_url, secret }
  *   GET    /v1/hooks?target_url=  -> { hooks: [{ id, events, target_url }] } (or a bare array)
  *   DELETE /v1/hooks/{id}       -> 204 (404 means already gone)
- *   GET    /v1/hooks/sample?event= -> one delivery envelope, or { samples: [...] }
  */
 import type { IDataObject, IHookFunctions } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
@@ -70,7 +69,7 @@ export async function findHook(
 		target_url: targetUrl,
 	});
 	const list = (Array.isArray(response) ? response : (response.hooks ?? [])) as HookRecord[];
-	return list.find((hook) => !hook.target_url || hook.target_url === targetUrl);
+	return list.find((hook) => hook.target_url === targetUrl);
 }
 
 export async function createHook(
@@ -83,7 +82,14 @@ export async function createHook(
 		target_url: targetUrl,
 		events,
 	});
-	return response as unknown as HookRecord;
+	const hook = response as unknown as HookRecord;
+	if (!hook.id || !hook.secret) {
+		throw new NodeOperationError(
+			context.getNode(),
+			'Workspace369 did not return a signing secret for this trigger, so its events could not be checked. Try activating the workflow again.',
+		);
+	}
+	return hook;
 }
 
 /** Deletes a hook. Returns true when it is gone (including when it was already gone). */

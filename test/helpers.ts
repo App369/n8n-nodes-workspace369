@@ -45,8 +45,10 @@ export function mockContext(options: MockOptions = {}) {
 			id: 'n1',
 		}),
 		getInputData: () => [{ json: {} }],
-		getNodeParameter: (name: string, _i?: unknown, fallback?: unknown) => {
+		// Node functions call (name, itemIndex, fallback); hook functions call (name, fallback).
+		getNodeParameter: (name: string, second?: unknown, third?: unknown) => {
 			const params = options.params ?? {};
+			const fallback = typeof second === 'number' ? third : second;
 			return name in params ? params[name] : fallback;
 		},
 		continueOnFail: () => options.continueOnFail ?? false,

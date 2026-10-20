@@ -62,14 +62,19 @@ export class Workspace369Trigger implements INodeType {
 				const hook = await findHook(this, webhookUrl);
 				if (!hook) return false;
 				const staticData = this.getWorkflowStaticData('node');
-				if (!staticData.secret) {
-					// Without a stored secret we cannot check signatures. Remove this hook
-					// so create() registers a fresh one and we get a secret.
+				const wanted = [...(this.getNodeParameter('events', []) as string[])].sort();
+				const current = [...(hook.events ?? [])].sort();
+				const sameEvents =
+					wanted.length === current.length && wanted.every((event, i) => event === current[i]);
+				if (!staticData.secret || staticData.hookId !== hook.id || !sameEvents) {
+					// We can't check this hook's signatures (no secret for it), or its
+					// events changed. Remove it so create() registers a fresh one; this
+					// also keeps stale hooks from counting against the workspace's cap.
 					await deleteHook(this, hook.id);
 					delete staticData.hookId;
+					delete staticData.secret;
 					return false;
 				}
-				staticData.hookId = hook.id;
 				return true;
 			},
 

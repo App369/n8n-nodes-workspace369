@@ -34,34 +34,67 @@ describe('event catalog', () => {
 });
 
 describe('trigger webhook methods', () => {
-	it('checkExists finds a hook by target_url and stores its id', async () => {
+	const URL_ = 'https://n8n.example.com/webhook/abc/webhook';
+
+	it('checkExists keeps a hook whose id, events and secret match', async () => {
 		const { ctx, request, staticData } = mockContext({
-			staticData: { secret: 'whsec_test' },
+			staticData: { hookId: 'h1', secret: 'whsec_test' },
+			params: { events: ['invoice.paid', 'invoice.created'] },
 			responses: [
-				{
-					hooks: [
-						{ id: 'h1', target_url: 'https://n8n.example.com/webhook/abc/webhook', events: [] },
-					],
-				},
+				{ hooks: [{ id: 'h1', target_url: URL_, events: ['invoice.created', 'invoice.paid'] }] },
 			],
 		});
 		expect(await call(ctx).checkExists()).toBe(true);
 		const o = reqOpts(request);
 		expect(o.method).toBe('GET');
 		expect(o.url).toBe('https://api.example.com/v1/hooks');
-		expect(o.qs).toEqual({ target_url: 'https://n8n.example.com/webhook/abc/webhook' });
+		expect(o.qs).toEqual({ target_url: URL_ });
+		expect(request.mock.calls).toHaveLength(1);
 		expect(staticData.hookId).toBe('h1');
 	});
 
-	it('checkExists is false when nothing matches, and tolerates a bare array', async () => {
+	it('checkExists is false when nothing matches the exact url, and tolerates a bare array', async () => {
 		const none = mockContext({ responses: [{ hooks: [] }] });
 		expect(await call(none.ctx).checkExists()).toBe(false);
+		const other = mockContext({
+			staticData: { hookId: 'h2', secret: 'whsec_test' },
+			responses: [[{ id: 'h2', target_url: 'https://other.example.com/hook', events: [] }]],
+		});
+		expect(await call(other.ctx).checkExists()).toBe(false);
 		const bare = mockContext({
-			staticData: { secret: 'whsec_test' },
-			responses: [[{ id: 'h2' }]],
+			staticData: { hookId: 'h2', secret: 'whsec_test' },
+			responses: [[{ id: 'h2', target_url: URL_, events: [] }]],
 		});
 		expect(await call(bare.ctx).checkExists()).toBe(true);
-		expect(bare.staticData.hookId).toBe('h2');
+	});
+
+	it('checkExists replaces a hook stored under another id or with other events', async () => {
+		const wrongId = mockContext({
+			staticData: { hookId: 'old', secret: 'whsec_test' },
+			responses: [{ hooks: [{ id: 'h9', target_url: URL_, events: [] }] }, {}],
+		});
+		expect(await call(wrongId.ctx).checkExists()).toBe(false);
+		expect(reqOpts(wrongId.request, 1).url).toBe('https://api.example.com/v1/hooks/h9');
+		expect(wrongId.staticData.secret).toBeUndefined();
+		const changed = mockContext({
+			staticData: { hookId: 'h1', secret: 'whsec_test' },
+			params: { events: ['lead.created'] },
+			responses: [{ hooks: [{ id: 'h1', target_url: URL_, events: ['invoice.paid'] }] }, {}],
+		});
+		expect(await call(changed.ctx).checkExists()).toBe(false);
+		expect(reqOpts(changed.request, 1).method).toBe('DELETE');
+	});
+
+	it('create refuses a response without a signing secret', async () => {
+		const { ctx } = mockContext({ responses: [{ id: 'h1', events: [], target_url: URL_ }] });
+		await expect(call(ctx).create()).rejects.toThrow(/signing secret/);
+	});
+
+	it('create shows the API message when the hook cap is reached', async () => {
+		const { ctx } = mockContext({
+			responses: [httpError(409, 'This workspace already has 25 webhooks.')],
+		});
+		await expect(call(ctx).create()).rejects.toThrow(/already has 25 webhooks/);
 	});
 
 	it('checkExists deletes a matching hook that has no stored secret and returns false', async () => {

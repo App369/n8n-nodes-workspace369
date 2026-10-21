@@ -60,6 +60,7 @@ export function mockContext(options: MockOptions = {}) {
 		getHeaderData: () => options.headers ?? {},
 		getBodyData: () => options.body ?? {},
 		getResponseObject: () => res,
+		logger: { warn: vi.fn() },
 	};
 	return { ctx, request, staticData, res };
 }

@@ -14,7 +14,7 @@ import { asNodeError, getStatusCode, workspace369Request } from '../Workspace369
 
 export const HOOKS_OFF_MESSAGE = "Instant triggers aren't switched on for Workspace369 yet.";
 export const PUBLIC_URL_MESSAGE =
-	'Workspace369 can only send events to a public https address. Make n8n reachable over https (for example by setting the WEBHOOK_URL environment variable) and try again.';
+	'Workspace369 can only send events to a public https address. Make n8n reachable over https (for example by setting the N8N_WEBHOOK_URL environment variable) and try again.';
 
 export interface HookRecord {
 	id: string;
@@ -61,15 +61,20 @@ async function hooksRequest(
 	}
 }
 
-export async function findHook(
-	context: IHookFunctions,
-	targetUrl: string,
-): Promise<HookRecord | undefined> {
+/** Every hook registered for exactly this target URL. */
+export async function listHooks(context: IHookFunctions, targetUrl: string): Promise<HookRecord[]> {
 	const response = await hooksRequest(context, 'GET', '/v1/hooks', undefined, {
 		target_url: targetUrl,
 	});
 	const list = (Array.isArray(response) ? response : (response.hooks ?? [])) as HookRecord[];
-	return list.find((hook) => hook.target_url === targetUrl);
+	return list.filter((hook) => hook.target_url === targetUrl);
+}
+
+export async function findHook(
+	context: IHookFunctions,
+	targetUrl: string,
+): Promise<HookRecord | undefined> {
+	return (await listHooks(context, targetUrl))[0];
 }
 
 export async function createHook(

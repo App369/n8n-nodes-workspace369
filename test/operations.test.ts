@@ -225,6 +225,53 @@ describe('Workspace369 node', () => {
 		expect(out[0].json).toEqual({ id: 'e1', title: 'Kickoff call', deduped: false });
 	});
 
+	it('Calendar Event → Create with Leave Unassigned sends an empty assignee list', async () => {
+		const { ctx, request } = mockContext({
+			params: {
+				resource: 'calendarEvent',
+				operation: 'create',
+				title: 'Site visit',
+				starts_at: '2026-11-02T10:00:00Z',
+				additionalFields: { unassigned: true, assigned_user_ids: '' },
+			},
+			responses: [{ event: { id: 'e2' }, deduped: false }],
+		});
+		await run(ctx);
+		expect(opts(request).body).toEqual({
+			title: 'Site visit',
+			starts_at: '2026-11-02T10:00:00Z',
+			assigned_user_ids: [],
+		});
+	});
+
+	it('Calendar Event → Create refuses assignees together with Leave Unassigned', async () => {
+		const { ctx, request } = mockContext({
+			params: {
+				resource: 'calendarEvent',
+				operation: 'create',
+				title: 'Site visit',
+				starts_at: '2026-11-02T10:00:00Z',
+				additionalFields: { unassigned: true, assigned_user_ids: 'u1' },
+			},
+		});
+		await expect(run(ctx)).rejects.toThrow('Choose either Assigned User IDs or Leave Unassigned');
+		expect(request).not.toHaveBeenCalled();
+	});
+
+	it('Calendar Event help says times need an offset and empty assignees mean the owner', () => {
+		const props = node.description.properties;
+		expect(props.find((p) => p.name === 'starts_at')?.description).toContain('Z or a UTC offset');
+		const extra = props.find(
+			(p) =>
+				p.name === 'additionalFields' && p.displayOptions?.show?.resource?.[0] === 'calendarEvent',
+		);
+		const fields = (extra?.options ?? []) as Array<{ name: string; description?: string }>;
+		expect(fields.find((f) => f.name === 'ends_at')?.description).toContain('exclusive');
+		expect(fields.find((f) => f.name === 'assigned_user_ids')?.description).toContain(
+			"token's owner",
+		);
+	});
+
 	it('Calendar Event date fields are plain strings with ISO help text', () => {
 		const props = node.description.properties;
 		const starts = props.find((p) => p.name === 'starts_at');

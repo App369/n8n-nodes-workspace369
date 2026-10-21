@@ -114,13 +114,17 @@ export async function workspace369Request(
 	}
 }
 
-/** POST /v1/tools/{name} with only the filled fields. */
+/** POST /v1/tools/{name} with only the filled fields, plus `exact` fields sent as they are. */
 export async function callTool(
 	this: Context,
 	tool: string,
 	body: IDataObject = {},
+	exact: IDataObject = {},
 ): Promise<IDataObject> {
-	return await workspace369Request.call(this, 'POST', `/v1/tools/${tool}`, omitEmpty(body));
+	return await workspace369Request.call(this, 'POST', `/v1/tools/${tool}`, {
+		...omitEmpty(body),
+		...exact,
+	});
 }
 
 /** Make sure what gets thrown is a NodeApiError or NodeOperationError. */

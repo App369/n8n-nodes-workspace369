@@ -1,7 +1,7 @@
 import type { IDataObject, IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-import { callTool, omitEmpty } from './GenericFunctions';
+import { callTool } from './GenericFunctions';
 
 const MAX_PAGE = 100;
 
@@ -128,12 +128,24 @@ export async function runOperation(
 
 	if (resource === 'calendarEvent' && operation === 'create') {
 		const extra = { ...p<IDataObject>('additionalFields', {}) };
+		const unassigned = extra.unassigned === true;
+		delete extra.unassigned;
 		if (extra.assigned_user_ids !== undefined)
 			extra.assigned_user_ids = csv(extra.assigned_user_ids);
+		if (unassigned && (extra.assigned_user_ids as string[] | undefined)?.length) {
+			throw new NodeOperationError(
+				this.getNode(),
+				'Choose either Assigned User IDs or Leave Unassigned, not both',
+				{ itemIndex: i },
+			);
+		}
+		// An empty assignee list leaves the event unassigned; leaving the field out
+		// assigns it to the token's owner. omitEmpty would drop [], so send it as is.
 		const response = await callTool.call(
 			this,
 			'calendar_create_event',
-			omitEmpty({ title: p<string>('title'), starts_at: p<string>('starts_at'), ...extra }),
+			{ title: p<string>('title'), starts_at: p<string>('starts_at'), ...extra },
+			unassigned ? { assigned_user_ids: [] } : {},
 		);
 		return unwrap(response, 'event', i, true);
 	}

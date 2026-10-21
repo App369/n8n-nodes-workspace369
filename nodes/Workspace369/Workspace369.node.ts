@@ -6,6 +6,7 @@ import type {
 } from 'n8n-workflow';
 import { NodeConnectionTypes } from 'n8n-workflow';
 
+import { CREDENTIAL_TEST_NAME, workspace369ApiTest } from './credentialTest';
 import { properties } from './descriptions';
 import { asNodeError } from './GenericFunctions';
 import { runOperation } from './operations';
@@ -25,8 +26,12 @@ export class Workspace369 implements INodeType {
 		usableAsTool: true,
 		inputs: [NodeConnectionTypes.Main],
 		outputs: [NodeConnectionTypes.Main],
-		credentials: [{ name: 'workspace369Api', required: true }],
+		credentials: [{ name: 'workspace369Api', required: true, testedBy: 'workspace369ApiTest' }],
 		properties,
+	};
+
+	methods = {
+		credentialTest: { [CREDENTIAL_TEST_NAME]: workspace369ApiTest },
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {

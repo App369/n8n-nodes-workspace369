@@ -164,6 +164,52 @@ describe('trigger webhook methods', () => {
 		expect(staticData.hookId).toBeUndefined();
 	});
 
+	it('delete also removes another hook left for the same url', async () => {
+		const url = 'https://n8n.example.com/webhook/abc/webhook';
+		const { ctx, request, staticData } = mockContext({
+			staticData: { hookId: 'h1', secret: 'whsec_test' },
+			responses: [
+				{},
+				{
+					hooks: [
+						{ id: 'h1', target_url: url, events: ['invoice.paid'] },
+						{ id: 'h2', target_url: url, events: ['invoice.paid'] },
+						{ id: 'h3', target_url: `${url}/other`, events: ['invoice.paid'] },
+					],
+				},
+				{},
+			],
+		});
+		expect(await call(ctx).delete()).toBe(true);
+		expect(
+			request.mock.calls.map((_, n) => `${reqOpts(request, n).method} ${reqOpts(request, n).url}`),
+		).toEqual([
+			'DELETE https://api.example.com/v1/hooks/h1',
+			'GET https://api.example.com/v1/hooks',
+			'DELETE https://api.example.com/v1/hooks/h2',
+		]);
+		expect(staticData).toEqual({});
+	});
+
+	it('delete still deactivates when the leftover check fails, and logs it', async () => {
+		const { ctx, staticData } = mockContext({
+			staticData: { hookId: 'h1', secret: 'whsec_test' },
+			responses: [httpError(404), httpError(404)],
+		});
+		expect(await call(ctx).delete()).toBe(true);
+		expect(staticData).toEqual({});
+		expect(ctx.logger.warn).toHaveBeenCalledWith(expect.stringContaining(HOOKS_OFF_MESSAGE));
+	});
+
+	it('answers deliveries with an empty body', () => {
+		expect(trigger.description.webhooks?.[0]).toMatchObject({ responseData: 'noData' });
+	});
+
+	it('the public URL help names N8N_WEBHOOK_URL', () => {
+		const notice = trigger.description.properties.find((p) => p.name === 'publicUrlNotice');
+		expect(notice?.displayName).toContain('N8N_WEBHOOK_URL');
+	});
+
 	it('delete still surfaces other errors', async () => {
 		const { ctx } = mockContext({
 			staticData: { hookId: 'h1' },

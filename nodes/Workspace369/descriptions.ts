@@ -360,7 +360,7 @@ export const properties: INodeProperties[] = [
 		default: '',
 		placeholder: '2026-11-03T14:00:00Z',
 		description:
-			'ISO 8601 date and time, e.g. 2026-11-03T14:00:00Z. For an all-day event use YYYY-MM-DD.',
+			'Date and time with Z or a UTC offset, e.g. 2026-11-03T14:00:00Z or 2026-11-03T14:00:00+01:00. A time without one is refused. For an all-day event use YYYY-MM-DD.',
 	},
 	{
 		displayName: 'Additional Fields',
@@ -382,7 +382,8 @@ export const properties: INodeProperties[] = [
 				name: 'assigned_user_ids',
 				type: 'string',
 				default: '',
-				description: 'Comma-separated list of team member IDs',
+				description:
+					"Comma-separated list of team member IDs. Leave empty to assign the event to the token's owner.",
 			},
 			{
 				displayName: 'Category',
@@ -399,7 +400,7 @@ export const properties: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'ISO 8601 date and time, e.g. 2026-11-03T14:00:00Z. For an all-day event use YYYY-MM-DD. Defaults to one hour after the start.',
+					'Date and time with Z or a UTC offset, e.g. 2026-11-03T14:00:00Z or 2026-11-03T14:00:00+01:00. A time without one is refused. Defaults to one hour after the start. For an all-day event use YYYY-MM-DD; the end date is exclusive (the day after the last day).',
 			},
 			{
 				displayName: 'Idempotency Key',
@@ -407,6 +408,14 @@ export const properties: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description: 'Sending the same key again returns the existing event',
+			},
+			{
+				displayName: 'Leave Unassigned',
+				name: 'unassigned',
+				type: 'boolean',
+				default: false,
+				description:
+					"Whether to create the event with nobody assigned. When off and Assigned User IDs is empty, the event is assigned to the token's owner.",
 			},
 			{
 				displayName: 'Recurrence',

@@ -8,8 +8,10 @@ import type {
 } from 'n8n-workflow';
 import { NodeConnectionTypes } from 'n8n-workflow';
 
+import { CREDENTIAL_TEST_NAME, workspace369ApiTest } from '../Workspace369/credentialTest';
 import { EVENTS } from './events';
-import { createHook, deleteHook, findHook } from './hooksApi';
+import type { HookRecord } from './hooksApi';
+import { createHook, deleteHook, findHook, listHooks } from './hooksApi';
 import { isTimestampFresh, verifySignature } from './signature';
 
 export class Workspace369Trigger implements INodeType {
@@ -26,19 +28,21 @@ export class Workspace369Trigger implements INodeType {
 		},
 		inputs: [],
 		outputs: [NodeConnectionTypes.Main],
-		credentials: [{ name: 'workspace369Api', required: true }],
+		credentials: [{ name: 'workspace369Api', required: true, testedBy: 'workspace369ApiTest' }],
 		webhooks: [
 			{
 				name: 'default',
 				httpMethod: 'POST',
 				responseMode: 'onReceived',
+				// Answer deliveries with an empty 200; Workspace369 only checks for 2xx.
+				responseData: 'noData',
 				path: 'webhook',
 			},
 		],
 		properties: [
 			{
 				displayName:
-					'Workspace369 sends events to your n8n webhook address, so n8n must be reachable at a public https URL. On a self-hosted n8n, set the WEBHOOK_URL environment variable.',
+					'Workspace369 sends events to your n8n webhook address, so n8n must be reachable at a public https URL. On a self-hosted n8n, set the N8N_WEBHOOK_URL environment variable. Older n8n versions use WEBHOOK_URL.',
 				name: 'publicUrlNotice',
 				type: 'notice',
 				default: '',
@@ -53,6 +57,10 @@ export class Workspace369Trigger implements INodeType {
 				description: 'Which events should start this workflow',
 			},
 		],
+	};
+
+	methods = {
+		credentialTest: { [CREDENTIAL_TEST_NAME]: workspace369ApiTest },
 	};
 
 	webhookMethods = {
@@ -96,6 +104,22 @@ export class Workspace369Trigger implements INodeType {
 				}
 				delete staticData.hookId;
 				delete staticData.secret;
+				// A crash between creating a hook and saving its id can leave a second
+				// hook for this URL. It would keep delivering (and failing the signature
+				// check) and count against the cap, so remove any others too.
+				const webhookUrl = this.getNodeWebhookUrl('default') as string;
+				let others: HookRecord[] = [];
+				try {
+					others = (await listHooks(this, webhookUrl)).filter((hook) => hook.id !== id);
+				} catch (error) {
+					// Listing is only a clean-up; it must not stop the workflow from deactivating.
+					this.logger.warn(
+						`Workspace369 Trigger: could not check for leftover hooks: ${(error as Error).message}`,
+					);
+				}
+				for (const hook of others) {
+					await deleteHook(this, hook.id);
+				}
 				return true;
 			},
 		},

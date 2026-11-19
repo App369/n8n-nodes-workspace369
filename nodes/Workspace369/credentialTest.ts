@@ -51,7 +51,7 @@ export function describeTestFailure(error: unknown): string {
 		return `${message || 'This token is missing a scope.'} Edit the token in Workspace369 (Settings → AI connections → Personal access tokens) and tick ${scope}; the connection test needs it.`;
 	}
 	if (code === 'plan_required') {
-		return message || 'The Workspace369 API needs the Specialist plan or higher.';
+		return message || 'The Workspace369 API needs a paid plan, Cadet and up (a trial counts once a card is saved).';
 	}
 	if (code === 'usage_exhausted' || status === 402) {
 		return `${message || 'This workspace is out of Tokens.'} The connection test uses 1 Token.`;
@@ -61,7 +61,7 @@ export function describeTestFailure(error: unknown): string {
 		return "Workspace369 didn't accept this API key. Check it's copied in full and hasn't been revoked.";
 	}
 	if (status === 403) {
-		return 'Workspace369 refused this token. Check it has the workspace:read scope and the workspace is on the Specialist plan or higher.';
+		return 'Workspace369 refused this token. Check it has the workspace:read scope and the workspace is on a paid plan, Cadet and up.';
 	}
 	if (status) return `Workspace369 answered HTTP ${status}.`;
 	return (error as Error)?.message || 'Could not reach Workspace369.';

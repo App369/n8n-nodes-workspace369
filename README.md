@@ -9,6 +9,8 @@ n8n community nodes for [Workspace369](https://workspace369.com), the client man
 
 ## Installation
 
+**Coming soon:** the package is not on npm yet, so the steps below work once it is published.
+
 Follow the [community nodes installation guide](https://docs.n8n.io/integrations/community-nodes/installation/).
 
 In short: in n8n, go to **Settings → Community nodes → Install**, enter `n8n-nodes-workspace369`, accept the risk notice and install. On a self-hosted n8n you can also run `npm install n8n-nodes-workspace369` in your n8n custom folder.
@@ -68,7 +70,7 @@ When you activate the workflow, n8n registers its webhook address with Workspace
 
 ### Instant triggers need the hooks API
 
-The trigger uses the Workspace369 hooks API (`/v1/hooks`), which is rolling out. Until it is switched on for your workspace, activating the trigger shows "Instant triggers aren't switched on for Workspace369 yet." The action node does not depend on it.
+The trigger uses the Workspace369 hooks API (`/v1/hooks`), which is live on every paid plan. If a workspace can't use it yet, activating the trigger shows "Instant triggers aren't switched on for Workspace369 yet." The action node does not depend on it.
 
 ### Signature verification
 

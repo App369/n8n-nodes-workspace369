@@ -139,10 +139,10 @@ describe('credential test', () => {
 			good,
 			legacyError(403, {
 				code: 'plan_required',
-				message: 'The Workspace369 API needs the Specialist plan.',
+				message: 'The Workspace369 API needs a paid plan.',
 			}),
 		);
-		expect((await result).message).toBe('The Workspace369 API needs the Specialist plan.');
+		expect((await result).message).toBe('The Workspace369 API needs a paid plan.');
 	});
 
 	it('explains an empty Token balance', async () => {

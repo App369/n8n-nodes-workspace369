@@ -22,7 +22,7 @@ In short: in n8n, go to **Settings → Community nodes → Install**, enter `n8n
 
 Good to know:
 
-- The API is available on the **Specialist plan and up**. On a lower plan the credential test fails with a plan message.
+- The API is available on every paid plan, **Cadet and up** (a trial counts once a card is saved). A workspace with no plan fails the credential test with a plan message.
 - Every call uses **Tokens** from your workspace balance. When the balance is empty, calls fail until you top up.
 - Some actions that send something to a client may **wait for approval in the app**. In that case the node still succeeds and its output has `held_for_approval: true` so your workflow can carry on.
 - Rate limits apply per token and per workspace. n8n shows the API's own error message when you hit one.
